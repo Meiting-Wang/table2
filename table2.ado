@@ -14,7 +14,7 @@ pr drop _all
 table2 foreign, c(n) //分组计数
 table2 foreign, c(n mean(price) sd(price) mean(trunk) sd(trunk)) //分组计算统计量
 table2 foreign, c(n mean(price) sd(price) mean(trunk) sd(trunk)) row //额外报告行方向总体上计算的统计量
-table2 foreign, c(n mean(price) sd(price) mean(trunk) sd(trunk)) row case //计算统计量时不会考虑包含缺漏值的观测值
+table2 foreign, c(n mean(price) sd(price) mean(trunk) sd(trunk)) row list //计算统计量时不会考虑包含缺漏值的观测值
 
 table2 foreign rep78, c(n) //分组计数
 table2 foreign rep78, c(n mean(price) sd(price) mean(trunk) sd(trunk)) //分组计算统计量
