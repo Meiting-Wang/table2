@@ -1,0 +1,9 @@
+v 1.0.0
+d table2. Output the results of the table command to Stata interface, Word and LaTeX
+d Meiting Wang
+d Institute for Economic and Social Research, Jinan University
+d Guangzhou, China
+d wangmeiting92@gmail.com
+
+f table2.ado
+f table2.sthlp
