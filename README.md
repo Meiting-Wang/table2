@@ -13,13 +13,14 @@
 
 ## 一、引言
 
-在处理数据时，需要将`table`命令的结果导出，但始终无法找到对应的选项，于是便自己动手写了这个命令。不过这个命令是基于`tabstat`和`esttab`编写的，所以与原生的命令有些许不同。其中差异，还需自行体会。
+在处理数据时，需要将`table`命令的结果导出，但始终无法找到对应的选项，于是便自己动手写了这个命令。不过这个命令是基于`tabstat`和`esttab`编写的，所以与原生的命令有些许不同，不过大同小异。
 
 本文介绍的`table2`命令，可以将分区描述性统计结果输出至 Stata 界面、Word 的 .rtf 文件和 LaTeX 的.tex 文件。有人可能会说，不是已经有了`wmtsum`了吗？不是的，`wmtsum`不能处理分区的情况。
 
 该命令，和已经推出`wmtsum`、`wmttest`、`wmtcorr`、`wmtreg`、`wmtmat`命令，都可以通过`append`选项成为一个整体，将输出结果集中输出至一个 Word 或 LaTeX 文件中。
 
 更多阅读：
+
 - [Stata 新命令：wmtsum——描述性统计表格的输出](https://mp.weixin.qq.com/s?__biz=MzI0MjgyNDc3MQ==&mid=2247483662&idx=1&sn=04eeafa47e3996e500207cde7416050e&chksm=e9772222de00ab3427c360d6bfb31c14bbd8ee8477840a2890f19d66f4dc44dc7a5cbf4bf4a2&token=1668456026&lang=zh_CN#rd)
 - [Stata 新命令：wmttest——分组 T 均值检验表格的输出](https://mp.weixin.qq.com/s?__biz=MzI0MjgyNDc3MQ==&mid=2247483673&idx=1&sn=05092b981b1b44bba6c94fbc86cabafb&chksm=e9772235de00ab232af1d9a3790b18a6ed0cd2f6cd8af8bd3b36193d4fa089bf313bc38c90d8&token=1668456026&lang=zh_CN#rd)
 - [Stata 新命令：wmtcorr——相关系数矩阵的输出](https://mp.weixin.qq.com/s?__biz=MzI0MjgyNDc3MQ==&mid=2247483678&idx=1&sn=6cc79f9de0caff35e9ee2ae5b057e3e2&chksm=e9772232de00ab241b6463368580a1e8a858878e2df3a6f444dce04f554aeeded2dcc873b101&token=1668456026&lang=zh_CN#rd)
@@ -30,16 +31,20 @@
 
 `table2`命令以及本人其他命令的代码都托管于 GitHub 上，读者可随时下载安装这些命令。
 
-你可以通过系统自带的`net`命令进行安装：
+`table2`由于用到了自己编写的`wmtstr`、`space_rm`、`mat_cagn`程序，所以有以下可选安装方式。
 
-```stata
-net install table2, from("https://raw.githubusercontent.com/Meiting-Wang/table2/master")
-```
-
-也可以通过`github`外部命令进行安装（`github`命令本身可以通过`net install github, from("https://haghish.github.io/github/")`进行安装）：
+（1）如果你没有`wmtstr`、`space_rm`、`mat_cagn`程序，则你需要使用`github`外部命令进行安装（`github`命令本身可以通过`net install github, from("https://haghish.github.io/github/")`进行安装）：
 
 ```stata
 github install Meiting-Wang/table2
+```
+
+> 以上语句会自动额外帮助你安装最新版的`wmtstr`、`space_rm`、`mat_cagn`程序。
+
+（2）如果你已经有了`wmtstr`、`space_rm`、`mat_cagn`程序，则你可以通过系统自带的`net`命令进行安装以节约安装时间：
+
+```stata
+net install table2, from("https://raw.githubusercontent.com/Meiting-Wang/table2/master")
 ```
 
 ## 三、语法与选项
@@ -47,173 +52,190 @@ github install Meiting-Wang/table2
 **命令语法**：
 
 ```stata
-table2 [est_store_names] [using filename] [, options]
+table2 varlist [if] [in] [weight] [using filename] [, options]
 ```
 
-> - `est_store_names`: 输入要报告的回归模型，默认导入所有已经储存好的回归模型
+> - `varlist`: 可输入一个或两个类别变量
+> - `weight`: 可以选择 fweight 或 aweight，默认为空。
 > - `using`: 可以将结果输出至 Word（ .rtf 文件）和 LaTeX（ .tex 文件）
 
 **选项（options）**：
 
 - 一般选项
-  - `drop(varlist)`：不报告指定变量的回归系数
-  - `keep(varlist)`：只报告指定变量的回归系数
-  - `order(varlist)`：设定处于表格最顶端的变量
-  - `varlabels(matchlist)`：更改所报告表格中变量的名称
-  - `b(fmt)`：报告普通的回归系数
-  - `beta(fmt)`：报告标准化的回归系数
-  - `se(fmt)`: 在回归系数下方报告标准误
-  - `t(fmt)`: 在回归系数下方报告 t 值
-  - `p(fmt)`: 在回归系数下方报告 p 值
-  - `onlyb`: 只报告回归系数，而不报告 se、t、p 值
-  - `staraux`: 将显著性星号标注下 se、t 或 p 值上(`* p<0.1, ** p<0.05, *** p<0.01`)
-  - `nostar`: 不报告星号
-  - `indicates(string)`: 不报告指定变量的回归系数，换之以 Yes 或 No 表示变量存在或不存在
-  - `scalars(string)`: 可填入**r2**、**ar2**、**pr2**、**aic**、**F**、**ll**和**N**，默认为**r2**和**N**。同时我们也可以为每一个写入的变量设置数值格式，如`r2(%9.2f)`
-  - `nonumbers`: 不报告每个回归模型的序列号
-  - `nomtitles`: 不报告每个回归模型的名称
-  - `mtitles(string)`: 设置每一个回归模型的名称。另外，关键字**depvars**表示每个回归模型的名称将用因变量代替，**esn**表示每个回归模型的名称将用其在 Stata 内存中的模型储存名代替。
-  - `title(string)`: 设置表格的标题，**Regression result**为默认值。
-  - `mgroups(string)`: 为回归模型设置分组，并附之以指定的组名，如`mgroups(2 2 A B)`表示前两个回归为组别 A，后两个回归为组别 B
-  - `replace`：将结果输出至 Word 或 LaTeX 时，替换已有的文件
-  - `append`：将结果输出至 Word 或 LaTeX 时，可附加在已经存在的文件中
+  - `contents(string)`：填写类似`n mean(price) sd(price) mean(mpg)`的语句，括号内为变量，括号外为统计量。所有可以输入的统计量有：`n mean sd min max range variance sum p1 p5 p10 p25 p50 p75 p90 p95 p99 cv skewness kurtosis`。这些统计量的含义可以在`help tabstat`中查看。
+  - `format(fmtlist)`：设定`contents`中对应统计量的数值格式
+  - `row`：额外报告行总计
+  - `column`：额外报告列总计
+  - `listwise`：在计算统计量之前会先剔除所涉及变量中包含缺漏值的观测值
+  - `title(string)`：设置表格标题
+  - `replace`: 替换已存在的文件
+  - `append`: 将输出内容附加在已存在的文件中
+  - `eqlabels(strings)`: 自定义行方程名
+  - `varlabels(matchlist)`: 自定义行变量名
+  - `collabels(strings)`: 自定义列名
+  - `varwidth(number)`: 自定义表格第一列的宽度
+  - `modelwidth(numlist)`: 自定义表格第二列及之后列的宽度
+  - `compress`: 压缩表格的行空白空间，以使表格更紧凑
 - LaTeX 专有选项
-  - `alignment()`：设置 LaTeX 表格的列对齐格式，可输入`math`或`dot`，`math`设置列格式为居中对齐的数学格式（自动添加宏包`booktabs`和`array`），`dot`表示小数点对齐的数学格式（自动添加宏包`booktabs`、`array`和`dcolumn`）。默认为`math`
-  - `page()`：可添加用户额外需要的宏包
+  - `alignment(string)`：设置 LaTeX 表格的列对齐格式，可输入`math`或`dot`，`math`设置列格式为居中对齐的数学格式（自动添加宏包`booktabs`和`array`），`dot`表示小数点对齐的数学格式（自动添加宏包`booktabs`、`array`和`dcolumn`）。默认为`math`
+  - `page(string)`：可添加用户额外需要的宏包
+  - `width(string)`：设置 LaTeX 中表格的宽度，如`width(\textwidth)`表示设置表格宽度为版心宽度
 
 > - 以上其中的一些选项可以缩写，详情可以在安装完命令后`help table2`
 
 ## 四、实例
 
 ```stata
-* 回归结果输出实例
-clear all
+*共同部分
 sysuse auto.dta, clear
-gen lprice = ln(price)
-tab rep78, gen(rep78_num)
-drop rep78_num1
+table2 foreign, c(n) //分组计数
+table2 foreign, c(n mean(price) sd(price) mean(trunk) sd(trunk)) //分组计算统计量
+table2 foreign, c(n mean(price) sd(price) mean(trunk) sd(trunk)) row //额外报告行方向总体上计算的统计量
+table2 foreign, c(n mean(price) sd(price) mean(trunk) sd(trunk)) row list //计算统计量时不会考虑包含缺漏值的观测值
 
-reg lprice mpg headroom
-est store m1
-reg lprice mpg trunk headroom
-est store m2
-reg lprice mpg trunk headroom rep78_num*
-est store m3
-reg lprice mpg trunk headroom foreign rep78_num*
-est store m4
+table2 foreign rep78, c(n) //分组计数
+table2 foreign rep78, c(n mean(price) sd(price) mean(trunk) sd(trunk)) //分组计算统计量
+table2 foreign rep78, c(n mean(price) sd(price) mean(trunk) sd(trunk)) row //额外报告行方向总体上计算的统计量
+table2 foreign rep78, c(n mean(price) sd(price) mean(trunk) sd(trunk)) row col //额外报告列方向总体上计算的统计量
+table2 foreign rep78, c(n mean(price) sd(price) mean(trunk) sd(trunk)) row col list //计算统计量时不会考虑包含缺漏值的观测值
 
-table2 //报告所有已经储存的回归结果
-table2 m1 m2 m3 m4 //报告指定的回归结果
-table2 m?, drop(_cons) //不报告常数项
-table2 m?, keep(mpg headroom trunk) //只报告指定变量的回归系数
-table2 m?, order(foreign mpg) //将变量foreign和mpg置于报告变量的最上方
-table2 m?, varl(mpg mpgtest trunk trunktest) //将变量mpg和trunk的展示名称改为mpgtest和trunktest
-table2 m?, b(%9.2f) se(%9.3f) //设定回归系数的格式，且默认下在系数的下方报告系数的标准误
-table2 m?, ind("rep78=rep78_num*" "foreign=foreign") //不报告foreign与rep78_num*系列变量的回归系数，换之以Yes或No的形式表示其否在回归中出现
-table2 m?, s(r2(%9.3f) F N(%9.0fc)) //报告指定的scalars，并设定其数值格式
-table2 m?, mg(Group1 Group2 2 2) //设置前两个回归为组别group1，后两个回归为组别group2
-table2 m? using Myfile.rtf, replace //将回归结果导出至Word
-table2 m? using Myfile.tex, replace //将回归结果导出至LaTeX
-table2 m? using Myfile.tex, replace a(dot) //将回归结果导出至LaTeX，并将其列表格设置为小数点对齐
+table2 foreign rep78 , c(n mean(price) sd(price) mean(trunk) sd(trunk)) f(0 2 2 2 2) row col //设置数值格式
+table2 foreign rep78 , c(n mean(price) sd(price) mean(trunk) sd(trunk)) row col eql(domestic foreign Total) //自定义报告的行方程名
+table2 foreign rep78 , c(n mean(price) sd(price) mean(trunk) sd(trunk)) row col varl(mean(price) price_m sd(price) price_sd mean(trunk) trunk_m sd(trunk) trunk_sd) //自定义行名
+table2 foreign rep78 , c(n mean(price) sd(price) mean(trunk) sd(trunk)) row col coll("very bad" bad general good "very good" Total) //自定义列名
+table2 foreign rep78 , c(n mean(price) sd(price) mean(trunk) sd(trunk)) row col compress //将表格压缩展示
+table2 foreign rep78 , c(n mean(price) sd(price) mean(trunk) sd(trunk)) row col varw(11) //自定义第一列的宽度(空格数)
+table2 foreign rep78 , c(n mean(price) sd(price) mean(trunk) sd(trunk)) row col compress varw(12) modelw(10) //将第二列及之后列的宽度设定为10个空格
+table2 foreign rep78 , c(n mean(price) sd(price) mean(trunk) sd(trunk)) row col compress varw(12) modelw(10 15 20 20 20 20) //为第二列及之后列分别自定义宽度
+table2 foreign rep78 , c(n mean(price) sd(price) mean(trunk) sd(trunk)) row col ti(This is a title) //自定义表格标题
+
+*Word部分
+table2 foreign rep78 using Myfile.rtf, replace c(n mean(price) sd(price) mean(trunk) sd(trunk)) f(0 2 2 2 2) row col ti(This is a title)  //将结果输出至Word
+
+*LaTeX部分
+table2 foreign rep78 using Myfile.tex, replace c(n mean(price) sd(price) mean(trunk) sd(trunk)) f(0 2 2 2 2) row col ti(This is a title) //将结果输出至LaTeX
+table2 foreign rep78 using Myfile.tex, replace c(n mean(price) sd(price) mean(trunk) sd(trunk)) f(0 2 2 2 2) row col ti(This is a title) a(math) //设置列格式为数学格式(也为默认列格式)
+table2 foreign rep78 using Myfile.tex, replace c(n mean(price) sd(price) mean(trunk) sd(trunk)) f(0 2 2 2 2) row col ti(This is a title) a(dot) //设置列格式为小数点对齐
+table2 foreign rep78 using Myfile.tex, replace c(n mean(price) sd(price) mean(trunk) sd(trunk)) f(0 2 2 2 2) row col ti(This is a title) page(amsmath) //引入额外的宏包(无论怎么样都会引入array和booktabs宏包)
+table2 foreign rep78 using Myfile.tex, replace c(n mean(price) sd(price) mean(trunk) sd(trunk)) f(0 2 2 2 2) row col ti(This is a title) width(\textwidth) //设置表格宽度为版心宽度
+
+*该命令结果可以用系统自带的 table 命令进行验证
+table foreign, c(freq)
+table foreign, c(freq mean price sd price mean trunk sd trunk)
+table foreign, c(freq mean price sd price mean trunk sd trunk) row
+
+table foreign rep78, c(freq)
+table foreign rep78, c(freq mean price sd price mean trunk sd trunk)
+table foreign rep78, c(freq mean price sd price mean trunk sd trunk) row
+table foreign rep78, c(freq mean price sd price mean trunk sd trunk) row col
 ```
 
-> 以上所有实例都可以在`help table2`中直接运行。  
-> ![image](https://user-images.githubusercontent.com/42256486/81492187-81fa4b00-92c8-11ea-874f-6026a289a382.png)
+> 以上所有与`table2`相关的实例都可以在`help table2`中直接运行。  
+> ![image](https://user-images.githubusercontent.com/42256486/90336243-03baec80-e00d-11ea-8d9a-d36b5a507916.png)
 
 ## 五、输出效果展示
 
 - **Stata**
 
 ```stata
-table2 m1 m2 m3 m4
+table2 foreign, c(n mean(price) sd(price) mean(trunk) sd(trunk)) row
 ```
 
 ```stata
-Regression result
---------------------------------------------------------------
-                 (1)          (2)          (3)          (4)
-              lprice       lprice       lprice       lprice
---------------------------------------------------------------
-mpg           -0.036***    -0.030***    -0.036***    -0.038***
-             (0.008)      (0.008)      (0.009)      (0.009)
-headroom      -0.052       -0.116*      -0.105       -0.096
-             (0.052)      (0.063)      (0.064)      (0.064)
-trunk                       0.025*       0.024*       0.028*
-                          (0.014)      (0.014)      (0.014)
-rep78_num2                               0.122        0.079
-                                       (0.275)      (0.272)
-rep78_num3                               0.164        0.099
-                                       (0.255)      (0.254)
-rep78_num4                               0.287        0.152
-                                       (0.257)      (0.264)
-rep78_num5                               0.437        0.256
-                                       (0.269)      (0.283)
-foreign                                               0.207*
-                                                    (0.117)
-_cons          9.573***     9.278***     9.172***     9.148***
-             (0.271)      (0.314)      (0.355)      (0.349)
---------------------------------------------------------------
-R-sq           0.252        0.284        0.349        0.381
-N                 74           74           69           69
---------------------------------------------------------------
-Standard errors in parentheses
-* p<0.1, ** p<0.05, *** p<0.01
+-----------------------------------------------------------------------------
+                        n  mean(price)    sd(price)  mean(trunk)    sd(trunk)
+-----------------------------------------------------------------------------
+0                      52     6072.423     3097.104        14.75     4.306288
+1                      22     6384.682     2621.915     11.40909     3.216906
+Total                  74     6165.257     2949.496     13.75676     4.277404
+-----------------------------------------------------------------------------
 ```
 
 ```stata
-table2 m?, ind("rep78=rep78_num*" "foreign=foreign")
+table2 foreign rep78, c(n mean(price) sd(price) mean(trunk) sd(trunk)) row col
 ```
 
 ```stata
-Regression result
---------------------------------------------------------------
-                 (1)          (2)          (3)          (4)
-              lprice       lprice       lprice       lprice
---------------------------------------------------------------
-mpg           -0.036***    -0.030***    -0.036***    -0.038***
-             (0.008)      (0.008)      (0.009)      (0.009)
-headroom      -0.052       -0.116*      -0.105       -0.096
-             (0.052)      (0.063)      (0.064)      (0.064)
-trunk                       0.025*       0.024*       0.028*
-                          (0.014)      (0.014)      (0.014)
-_cons          9.573***     9.278***     9.172***     9.148***
-             (0.271)      (0.314)      (0.355)      (0.349)
-rep78             No           No          Yes          Yes
-foreign           No           No           No          Yes
---------------------------------------------------------------
-R-sq           0.252        0.284        0.349        0.381
-N                 74           74           69           69
---------------------------------------------------------------
-Standard errors in parentheses
-* p<0.1, ** p<0.05, *** p<0.01
+------------------------------------------------------------------------------------------
+                        1            2            3            4            5        Total
+------------------------------------------------------------------------------------------
+0                                                                                         
+n                       2            8           27            9            2           48
+mean(price)        4564.5     5967.625     6607.074     5881.556       4204.5      6179.25
+sd(price)        522.5519     3579.357     3661.267     1592.019     311.8341     3188.969
+mean(trunk)           8.5       14.625     15.59259     16.66667          9.5     15.08333
+sd(trunk)         2.12132     4.983903     3.532914      4.66369      2.12132     4.281744
+------------------------------------------------------------------------------------------
+1                                                                                         
+n                       0            0            3            9            9           21
+mean(price)             .            .     4828.667     6261.444     6292.667     6070.143
+sd(price)               .            .     1285.613     1896.092     2765.629     2220.984
+mean(trunk)             .            .     12.33333     10.33333     11.88889     11.28571
+sd(trunk)               .            .      3.21455     3.840573     2.666667     3.242574
+------------------------------------------------------------------------------------------
+Total                                                                                     
+n                       2            8           30           18           11           69
+mean(price)        4564.5     5967.625     6429.233       6071.5         5913     6146.043
+sd(price)        522.5519     3579.357      3525.14     1709.608     2615.763      2912.44
+mean(trunk)           8.5       14.625     15.26667         13.5     11.45455     13.92754
+sd(trunk)         2.12132     4.983903     3.590537     5.272013      2.65946     4.343077
+------------------------------------------------------------------------------------------
 ```
 
 - **Word**
 
 ```stata
-table2 m? using Myfile.rtf, replace
+table2 foreign rep78 using Myfile.rtf, replace c(n mean(price) sd(price) mean(trunk) sd(trunk)) f(0 2 2 2 2) row col ti(This is a title)
 ```
 
-![image](https://user-images.githubusercontent.com/42256486/81492189-86266880-92c8-11ea-9cba-b8533511f275.png)
+![table2-Word](https://user-images.githubusercontent.com/42256486/90336348-d6bb0980-e00d-11ea-8801-a89428a10bb1.png)
 
 - **LaTeX**
 
 ```stata
-table2 m? using Myfile.tex, replace
+table2 foreign rep78 using Myfile.tex, replace c(n mean(price) sd(price) mean(trunk) sd(trunk)) f(0 2 2 2 2) row col ti(This is a title) a(math)
 ```
-
-![image](https://user-images.githubusercontent.com/42256486/81492192-89b9ef80-92c8-11ea-8b43-ff02238fd118.png)
 
 ```stata
-table2 m? using Myfile.tex, replace mg(Group1 Group2 2 2)
+% 16 Aug 2020 22:17:09
+\documentclass{article}
+\usepackage{array}
+\usepackage{booktabs}
+\begin{document}
+
+\begin{table}[htbp]\centering
+\caption{This is a title}
+\begin{tabular}{l*{6}{>{$}c<{$}}}
+\toprule
+            &\multicolumn{1}{c}{1}&\multicolumn{1}{c}{2}&\multicolumn{1}{c}{3}&\multicolumn{1}{c}{4}&\multicolumn{1}{c}{5}&\multicolumn{1}{c}{Total}\\
+\midrule
+0           &            &            &            &            &            &            \\
+n           &           2&           8&          27&           9&           2&          48\\
+mean(price) &     4564.50&     5967.63&     6607.07&     5881.56&     4204.50&     6179.25\\
+sd(price)   &      522.55&     3579.36&     3661.27&     1592.02&      311.83&     3188.97\\
+mean(trunk) &        8.50&       14.63&       15.59&       16.67&        9.50&       15.08\\
+sd(trunk)   &        2.12&        4.98&        3.53&        4.66&        2.12&        4.28\\
+\midrule
+1           &            &            &            &            &            &            \\
+n           &           0&           0&           3&           9&           9&          21\\
+mean(price) &           .&           .&     4828.67&     6261.44&     6292.67&     6070.14\\
+sd(price)   &           .&           .&     1285.61&     1896.09&     2765.63&     2220.98\\
+mean(trunk) &           .&           .&       12.33&       10.33&       11.89&       11.29\\
+sd(trunk)   &           .&           .&        3.21&        3.84&        2.67&        3.24\\
+\midrule
+Total       &            &            &            &            &            &            \\
+n           &           2&           8&          30&          18&          11&          69\\
+mean(price) &     4564.50&     5967.63&     6429.23&     6071.50&     5913.00&     6146.04\\
+sd(price)   &      522.55&     3579.36&     3525.14&     1709.61&     2615.76&     2912.44\\
+mean(trunk) &        8.50&       14.63&       15.27&       13.50&       11.45&       13.93\\
+sd(trunk)   &        2.12&        4.98&        3.59&        5.27&        2.66&        4.34\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}
 ```
 
-![image](https://user-images.githubusercontent.com/42256486/81492195-8e7ea380-92c8-11ea-8c9e-a8f84e3acd66.png)
-
-```stata
-table2 m? using Myfile.tex, replace a(dot)
-```
-
-![image](https://user-images.githubusercontent.com/42256486/81492198-92122a80-92c8-11ea-9411-efaa0da76410.png)
+![table2-LaTeX](https://user-images.githubusercontent.com/42256486/90336461-a1fb8200-e00e-11ea-8cf5-498467892d81.png)
 
 > 在将结果输出至 Word 或 LaTeX 时，Stata 界面上也会呈现对应的结果，以方便查看。
