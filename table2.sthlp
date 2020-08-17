@@ -1,5 +1,5 @@
 {smcl}
-{right:Updated time: July 7, 2020}
+{right:Updated time: Aug 16, 2020}
 {* -----------------------------title------------------------------------ *}{...}
 {p 0 17 2}
 {bf:[W-10] table2} {hline 2} output the results of the table command to Stata interface, Word and LaTeX. The source code can be gained in {browse "https://github.com/Meiting-Wang/table2":github}.
