@@ -17,7 +17,7 @@
 
 本文介绍的`table2`命令，可以将分区描述性统计结果输出至 Stata 界面、Word 的 .rtf 文件和 LaTeX 的.tex 文件。有人可能会说，不是已经有了`wmtsum`了吗？不是的，`wmtsum`不能处理分区的情况。
 
-该命令，和已经推出`wmtsum`、`wmttest`、`wmtcorr`、`wmtreg`、`wmtmat`命令，都可以通过`append`选项成为一个整体，将输出结果集中输出至一个 Word 或 LaTeX 文件中。
+该命令，和已经推出的`wmtsum`、`wmttest`、`wmtcorr`、`wmtreg`、`wmtmat`命令，都可以通过`append`选项成为一个整体，将输出结果集中输出至一个 Word 或 LaTeX 文件中。
 
 更多阅读：
 
